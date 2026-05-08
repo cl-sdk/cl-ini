@@ -127,6 +127,12 @@ key = second"))
     (is (string= "first"
                  (cdr (assoc "key" (cdr section) :test #'string=))))))
 
+(test parse-only-keys-no-section
+  "When the input contains only key-value pairs and no section header, the
+result is an empty list (the orphan pairs are silently discarded)."
+  (is (null (parse-ini "key = value
+other = 42"))))
+
 (test parse-pairs-before-section
   "Key-value lines that appear before any section header are silently dropped."
   (let ((result (parse-ini "orphan = value
