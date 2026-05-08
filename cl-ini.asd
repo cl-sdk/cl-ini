@@ -2,8 +2,10 @@
   :long-name "cl-ini — Common Lisp INI reader and writer"
   :description "A Common Lisp INI file reader and writer."
   :long-description
-  #.(uiop:read-file-string
-     (uiop:subpathname *load-pathname* "README.md"))
+  #.(or (ignore-errors
+          (uiop:read-file-string
+           (uiop:subpathname *load-pathname* "README.md")))
+        "A Common Lisp INI file reader and writer.")
   :author "cl-sdk"
   :maintainer "cl-sdk"
   :license "Unlicense"
