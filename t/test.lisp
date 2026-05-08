@@ -88,6 +88,7 @@ recognised as a section header, and the line is silently dropped."
 
 (test parse-colon-separator-trims-whitespace
   "The colon separator also trims surrounding whitespace from key and value."
+  ;; Trailing spaces after "value" are intentional – they should be trimmed.
   (let ((result (parse-ini "[section]
   key  :  value  ")))
     (let ((section (first result)))
@@ -162,21 +163,18 @@ key = second")))
 
 (test read-ini-from-file
   "READ-INI reads and parses an INI file from disk."
-  (let ((path (merge-pathnames "cl-ini-test.ini" (uiop:temporary-directory))))
-    (unwind-protect
-         (progn
-           (with-open-file (stream path
-                                   :direction :output
-                                   :if-exists :supersede
-                                   :if-does-not-exist :create)
-             (write-string "[section]
+  (uiop:with-temporary-file (:pathname path :type "ini" :keep nil)
+    (with-open-file (stream path
+                            :direction :output
+                            :if-exists :supersede
+                            :if-does-not-exist :create)
+      (write-string "[section]
 key = value" stream))
-           (let ((result (read-ini path)))
-             (is (= 1 (length result)))
-             (is (string= "section" (caar result)))
-             (is (string= "value"
-                          (cdr (assoc "key" (cdr (first result)) :test #'string=))))))
-      (uiop:delete-file-if-exists path))))
+    (let ((result (read-ini path)))
+      (is (= 1 (length result)))
+      (is (string= "section" (caar result)))
+      (is (string= "value"
+                   (cdr (assoc "key" (cdr (first result)) :test #'string=)))))))
 
 ;;; Writer tests
 
