@@ -45,7 +45,7 @@ Returns a list of such section lists."
                  ;; skip blank lines and comments
                  )
                 ((section-line-p line)
-                 (when current-section
+                 (when (or current-section current-pairs)
                    (push (cons current-section (nreverse current-pairs))
                          sections))
                  (setf current-section (parse-section-name line))
@@ -54,7 +54,7 @@ Returns a list of such section lists."
                  (let ((pair (parse-key-value line)))
                    (when pair
                      (push pair current-pairs)))))))
-    (when current-section
+    (when (or current-section current-pairs)
       (push (cons current-section (nreverse current-pairs)) sections))
     (nreverse sections)))
 

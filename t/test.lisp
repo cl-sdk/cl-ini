@@ -129,18 +129,31 @@ key = second"))
 
 (test parse-only-keys-no-section
   "When the input contains only key-value pairs and no section header, the
-result is an empty list (the orphan pairs are silently discarded)."
-  (is (null (parse-ini "key = value
-other = 42"))))
+pairs are collected under a NIL section key."
+  (let ((result (parse-ini "key = value
+other = 42")))
+    (is (= 1 (length result)))
+    (is (null (caar result)))
+    (is (string= "value"
+                 (cdr (assoc "key" (cdr (first result)) :test #'string=))))
+    (is (string= "42"
+                 (cdr (assoc "other" (cdr (first result)) :test #'string=))))))
 
 (test parse-pairs-before-section
-  "Key-value lines that appear before any section header are silently dropped."
+  "Key-value lines before any section header are collected under a NIL section
+key; subsequently named sections follow as normal."
   (let ((result (parse-ini "orphan = value
 [section]
 key = val")))
-    (is (= 1 (length result)))
-    (is (string= "section" (caar result)))
-    (is (null (assoc "orphan" (cdr (first result)) :test #'string=)))))
+    (is (= 2 (length result)))
+    (let ((global (first result))
+          (named  (second result)))
+      (is (null (car global)))
+      (is (string= "value"
+                   (cdr (assoc "orphan" (cdr global) :test #'string=))))
+      (is (string= "section" (car named)))
+      (is (string= "val"
+                   (cdr (assoc "key" (cdr named) :test #'string=)))))))
 
 (test parse-indented-comment
   "A comment line preceded by whitespace is still recognised as a comment."
