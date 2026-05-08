@@ -1,0 +1,8 @@
+("quicklisp" .
+ (:class qlot/source/dist:source-dist
+  :initargs (:distribution "https://beta.quicklisp.org/dist/quicklisp.txt" :%version :latest)
+  :version "2026-01-01"))
+("fiveam" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "lispci/fiveam" :ref nil :branch nil :tag "v1.4.3")
+  :version "github-458c62a10358d2a17a5d7ac6c3935d1697eb29a2"))
