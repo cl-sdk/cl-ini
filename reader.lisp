@@ -58,7 +58,7 @@
 (defmethod ini-parser-result ((parser default-ini-parser))
   (nreverse (default-ini-parser-sections parser)))
 
-(defun parse-ini (input &key (parser (make-instance 'default-ini-parser)))
+(defun parse-ini (input &key parser)
   "Parse INI INPUT and return PARSER's result.
 
 INPUT may be a string or a character stream.
@@ -66,26 +66,29 @@ INPUT may be a string or a character stream.
 The default parser returns an alist of sections where each section has the
 form:
   (\"section-name\" (\"key1\" . \"value1\") (\"key2\" . \"value2\") ...)."
-  (flet ((do-parse (stream)
-           (ini-parser-begin-document parser)
-           (loop for line = (read-line stream nil nil)
-                 while line do
-                   (cond
-                     ((or (zerop (length (trim line)))
-                          (comment-line-p line)))
-                     ((section-line-p line)
-                      (ini-parser-section parser (parse-section-name line)))
-                     (t
-                      (let ((pair (parse-key-value line)))
-                        (when pair
-                          (ini-parser-pair parser pair))))))
-           (ini-parser-end-document parser)
-           parser))
-    (let ((stream (etypecase input
-                    (stream input)
-                    (string (make-string-input-stream input)))))
-      (ini-parser-result (do-parse stream)))))
+  (let ((parser (or parser (make-instance 'default-ini-parser))))
+    (flet ((do-parse (stream)
+             (ini-parser-begin-document parser)
+             (loop for line = (read-line stream nil nil)
+                   while line do
+                     (cond
+                       ((or (zerop (length (trim line)))
+                            (comment-line-p line)))
+                       ((section-line-p line)
+                        (ini-parser-section parser (parse-section-name line)))
+                       (t
+                        (let ((pair (parse-key-value line)))
+                          (when pair
+                            (ini-parser-pair parser pair))))))
+             (ini-parser-end-document parser)
+             parser))
+      (etypecase input
+        (stream
+         (ini-parser-result (do-parse input)))
+        (string
+         (with-input-from-string (stream input)
+           (ini-parser-result (do-parse stream))))))))
 
-(defun read-ini (pathname &key (parser (make-instance 'default-ini-parser)))
+(defun read-ini (pathname &key parser)
   "Read and parse an INI file at PATHNAME and return PARSER's result."
   (parse-ini (uiop:read-file-string pathname) :parser parser))
