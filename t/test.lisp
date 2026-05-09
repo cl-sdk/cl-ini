@@ -68,6 +68,133 @@ key: value")))
       (is (string= "value"
                    (cdr (assoc "key" (cdr section) :test #'string=)))))))
 
+(test parse-section-name-with-whitespace
+  "Section names are trimmed of surrounding whitespace."
+  (let ((result (parse-ini "[ section ]")))
+    (is (= 1 (length result)))
+    (is (string= "section" (caar result)))))
+
+(test parse-empty-section-name
+  "An empty section header '[]' produces a section with an empty-string name."
+  (let ((result (parse-ini "[]")))
+    (is (= 1 (length result)))
+    (is (string= "" (caar result)))))
+
+(test parse-section-with-trailing-content-not-recognised
+  "A section header followed by extra content on the same line is not
+recognised as a section header, and the line is silently dropped."
+  (let ((result (parse-ini "[section] ; inline comment")))
+    (is (null result))))
+
+(test parse-colon-separator-trims-whitespace
+  "The colon separator also trims surrounding whitespace from key and value."
+  ;; Trailing spaces after "value" are intentional – they should be trimmed.
+  (let ((result (parse-ini "[section]
+  key  :  value  ")))
+    (let ((section (first result)))
+      (is (string= "value"
+                   (cdr (assoc "key" (cdr section) :test #'string=)))))))
+
+(test parse-value-with-equals
+  "A value that itself contains '=' is kept intact."
+  (let ((result (parse-ini "[section]
+key = a=b")))
+    (is (string= "a=b"
+                 (cdr (assoc "key" (cdr (first result)) :test #'string=))))))
+
+(test parse-colon-separator-value-with-colon
+  "When using the colon separator, subsequent colons inside the value are kept."
+  (let ((result (parse-ini "[section]
+key: http://example.com")))
+    (is (string= "http://example.com"
+                 (cdr (assoc "key" (cdr (first result)) :test #'string=))))))
+
+(test parse-line-without-separator
+  "A line with no '=' or ':' separator is silently ignored."
+  (let ((result (parse-ini "[section]
+no-separator-here")))
+    (let ((section (first result)))
+      (is (null (cdr section))))))
+
+(test parse-duplicate-keys
+  "When a key appears more than once in a section, all entries are kept and
+ASSOC returns the first one."
+  (let* ((result (parse-ini "[section]
+key = first
+key = second"))
+         (section (first result)))
+    (is (= 2 (length (cdr section))))
+    (is (string= "first"
+                 (cdr (assoc "key" (cdr section) :test #'string=))))))
+
+(test parse-only-keys-no-section
+  "When the input contains only key-value pairs and no section header, the
+pairs are collected under a NIL section key."
+  (let ((result (parse-ini "key = value
+other = 42")))
+    (is (= 1 (length result)))
+    (is (null (caar result)))
+    (is (string= "value"
+                 (cdr (assoc "key" (cdr (first result)) :test #'string=))))
+    (is (string= "42"
+                 (cdr (assoc "other" (cdr (first result)) :test #'string=))))))
+
+(test parse-pairs-before-section
+  "Key-value lines before any section header are collected under a NIL section
+key; subsequently named sections follow as normal."
+  (let ((result (parse-ini "orphan = value
+[section]
+key = val")))
+    (is (= 2 (length result)))
+    (let ((global (first result))
+          (named  (second result)))
+      (is (null (car global)))
+      (is (string= "value"
+                   (cdr (assoc "orphan" (cdr global) :test #'string=))))
+      (is (string= "section" (car named)))
+      (is (string= "val"
+                   (cdr (assoc "key" (cdr named) :test #'string=)))))))
+
+(test parse-indented-comment
+  "A comment line preceded by whitespace is still recognised as a comment."
+  (let ((result (parse-ini "[section]
+  ; indented comment
+key = value")))
+    (let ((section (first result)))
+      (is (= 1 (length (cdr section)))))))
+
+(test parse-inline-comment-not-stripped
+  "Trailing inline comments are not stripped; they become part of the value."
+  (let ((result (parse-ini "[section]
+key = value ; inline comment")))
+    (is (string= "value ; inline comment"
+                 (cdr (assoc "key" (cdr (first result)) :test #'string=))))))
+
+(test parse-duplicate-sections
+  "When the same section name appears twice, both are kept as separate entries."
+  (let ((result (parse-ini "[section]
+key = first
+[section]
+key = second")))
+    (is (= 2 (length result)))
+    (is (string= "section" (car (first result))))
+    (is (string= "section" (car (second result))))))
+
+(test read-ini-from-file
+  "READ-INI reads and parses an INI file from disk."
+  (uiop:with-temporary-file (:pathname path :type "ini" :keep nil)
+    (with-open-file (stream path
+                            :direction :output
+                            :if-exists :supersede
+                            :if-does-not-exist :create)
+      (write-string "[section]
+key = value" stream))
+    (let ((result (read-ini path)))
+      (is (= 1 (length result)))
+      (is (string= "section" (caar result)))
+      (is (string= "value"
+                   (cdr (assoc "key" (cdr (first result)) :test #'string=)))))))
+
 ;;; Writer tests
 
 (test write-empty-data
