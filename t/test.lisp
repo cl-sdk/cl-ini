@@ -1,9 +1,9 @@
-(in-package :cl-ini.test)
+(in-package :io.github.cl-sdk.ini.test)
 
-(def-suite :cl-ini
+(def-suite :io.github.cl-sdk.ini
   :description "Tests for the cl-ini INI reader and writer.")
 
-(in-suite :cl-ini)
+(in-suite :io.github.cl-sdk.ini)
 
 (defclass recording-ini-parser (ini-parser)
   ((events :initform '() :accessor recording-ini-parser-events)))

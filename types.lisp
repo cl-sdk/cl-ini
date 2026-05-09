@@ -1,4 +1,4 @@
-(in-package :cl-ini)
+(in-package :io.github.cl-sdk.ini)
 
 (defclass ini-parser ()
   ()

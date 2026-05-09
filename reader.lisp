@@ -1,4 +1,4 @@
-(in-package :cl-ini)
+(in-package :io.github.cl-sdk.ini)
 
 (defun trim (string)
   (string-trim '(#\Space #\Tab) string))
