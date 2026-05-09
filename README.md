@@ -30,13 +30,13 @@ other = 42")
 
 ### Schema-based parsing
 
-`parse-ini-with-schema` and `read-ini-with-schema` accept a *schema* that
+`parse-ini` accepts an optional *schema* as its second argument. The schema
 declares the expected type of each key.  Values are coerced to their declared
 type, required keys are enforced, and missing optional keys can be filled with
 defaults.
 
 ```lisp
-(cl-ini:parse-ini-with-schema
+(cl-ini:parse-ini
   "[server]
 host = localhost
 port = 8080
@@ -50,6 +50,8 @@ debug = true"
                 :required nil))))
 ;; => (("server" ("host" . "localhost") ("port" . 8080) ("debug" . T) ("timeout" . 30)))
 ```
+
+`parse-ini-with-schema` and `read-ini-with-schema` are convenience wrappers.
 
 #### Key specification formats
 

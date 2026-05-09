@@ -26,13 +26,15 @@
       (cons (trim (subseq line 0 sep))
             (trim (subseq line (1+ sep)))))))
 
-(defun parse-ini (string)
+(defun parse-ini (string &optional schema)
   "Parse an INI-formatted STRING and return an alist of sections.
 
 Each section is a list of the form:
   (\"section-name\" (\"key1\" . \"value1\") (\"key2\" . \"value2\") ...)
 
-Returns a list of such section lists."
+Returns a list of such section lists.
+
+When SCHEMA is provided, apply it to the parsed data via APPLY-SCHEMA."
   (let ((sections '())
         (current-section nil)
         (current-pairs '()))
@@ -56,7 +58,10 @@ Returns a list of such section lists."
                      (push pair current-pairs)))))))
     (when (or current-section current-pairs)
       (push (cons current-section (nreverse current-pairs)) sections))
-    (nreverse sections)))
+    (let ((parsed (nreverse sections)))
+      (if schema
+          (apply-schema parsed schema)
+          parsed))))
 
 (defun read-ini (pathname)
   "Read and parse an INI file at PATHNAME. Returns the same format as PARSE-INI."

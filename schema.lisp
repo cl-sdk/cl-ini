@@ -165,7 +165,7 @@ Returns the same alist structure as PARSE-INI, but with values coerced to
 their declared types.
 
 Signals INI-SCHEMA-ERROR on type-coercion failure or a missing required key."
-  (apply-schema (parse-ini string) schema))
+  (parse-ini string schema))
 
 (defun read-ini-with-schema (pathname schema)
   "Read and parse an INI file at PATHNAME, applying SCHEMA.

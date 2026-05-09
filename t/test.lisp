@@ -234,6 +234,13 @@ key = hello" schema)))
     (is (string= "hello"
                  (cdr (assoc "key" (cdr (first result)) :test #'string=))))))
 
+(test parse-ini-with-optional-schema
+  "PARSE-INI applies schema coercion when SCHEMA is passed."
+  (let* ((schema '(("section" ("count" . :integer))))
+         (result (parse-ini "[section]
+count = 42" schema)))
+    (is (= 42 (cdr (assoc "count" (cdr (first result)) :test #'string=))))))
+
 (test schema-integer-type
   "The :integer type coerces the value to an integer."
   (let* ((schema '(("section" ("count" . :integer))))
