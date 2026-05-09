@@ -9,7 +9,7 @@ A Common Lisp INI file reader and writer.
 Clone the repository into your local Quicklisp projects directory, then load with ASDF or Quicklisp:
 
 ```lisp
-(ql:quickload :io.github.diasbruno.ini)
+(ql:quickload :io.github.cl-sdk.ini)
 ```
 
 ## Usage
@@ -18,13 +18,13 @@ Clone the repository into your local Quicklisp projects directory, then load wit
 
 ```lisp
 ;; Parse an INI string
-(io.github.diasbruno.ini:parse-ini "[section]
+(io.github.cl-sdk.ini:parse-ini "[section]
 key = value
 other = 42")
 ;; => (("section" ("key" . "value") ("other" . "42")))
 
 ;; Read from a file
-(io.github.diasbruno.ini:read-ini #p"config.ini")
+(io.github.cl-sdk.ini:read-ini #p"config.ini")
 ;; => (("section" ("key" . "value")))
 
 ;; You can also pass :parser to parse-ini/read-ini for custom event handling.
@@ -32,28 +32,28 @@ other = 42")
 
 ### Event-driven parser
 
-`parse-ini` accepts a custom parser instance that subclasses `io.github.diasbruno.ini:ini-parser`.
+`parse-ini` accepts a custom parser instance that subclasses `io.github.cl-sdk.ini:ini-parser`.
 
 ```lisp
-(defclass recording-parser (io.github.diasbruno.ini:ini-parser)
+(defclass recording-parser (io.github.cl-sdk.ini:ini-parser)
   ((events :initform '() :accessor events)))
 
-(defmethod io.github.diasbruno.ini:ini-parser-begin-document ((parser recording-parser))
+(defmethod io.github.cl-sdk.ini:ini-parser-begin-document ((parser recording-parser))
   (push '(:begin-document nil) (events parser)))
 
-(defmethod io.github.diasbruno.ini:ini-parser-section ((parser recording-parser) section-name)
+(defmethod io.github.cl-sdk.ini:ini-parser-section ((parser recording-parser) section-name)
   (push (list :section section-name) (events parser)))
 
-(defmethod io.github.diasbruno.ini:ini-parser-pair ((parser recording-parser) pair)
+(defmethod io.github.cl-sdk.ini:ini-parser-pair ((parser recording-parser) pair)
   (push (list :pair pair) (events parser)))
 
-(defmethod io.github.diasbruno.ini:ini-parser-end-document ((parser recording-parser))
+(defmethod io.github.cl-sdk.ini:ini-parser-end-document ((parser recording-parser))
   (push '(:end-document nil) (events parser)))
 
-(defmethod io.github.diasbruno.ini:ini-parser-result ((parser recording-parser))
+(defmethod io.github.cl-sdk.ini:ini-parser-result ((parser recording-parser))
   (nreverse (events parser)))
 
-(io.github.diasbruno.ini:parse-ini "[section]
+(io.github.cl-sdk.ini:parse-ini "[section]
 key = value"
                   :parser (make-instance 'recording-parser))
 ;; => ((:BEGIN-DOCUMENT NIL)
@@ -66,14 +66,14 @@ key = value"
 
 ```lisp
 ;; Write INI data to a string
-(io.github.diasbruno.ini:write-ini-to-string '(("section" ("key" . "value") ("other" . "42"))))
+(io.github.cl-sdk.ini:write-ini-to-string '(("section" ("key" . "value") ("other" . "42"))))
 ;; => "[section]
 ;; key = value
 ;; other = 42
 ;; "
 
 ;; Write to a file
-(io.github.diasbruno.ini:write-ini '(("section" ("key" . "value"))) #p"config.ini")
+(io.github.cl-sdk.ini:write-ini '(("section" ("key" . "value"))) #p"config.ini")
 ```
 
 ## Data Format
@@ -96,8 +96,8 @@ INI data is represented as an association list of sections. Each section is a li
 ## Running Tests
 
 ```lisp
-(ql:quickload :io.github.diasbruno.ini.test)
-(fiveam:run! :io.github.diasbruno.ini)
+(ql:quickload :io.github.cl-sdk.ini.test)
+(fiveam:run! :io.github.cl-sdk.ini)
 ```
 
 ## License

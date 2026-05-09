@@ -1,4 +1,4 @@
-(in-package :io.github.diasbruno.ini)
+(in-package :io.github.cl-sdk.ini)
 
 (defclass ini-parser ()
   ()
