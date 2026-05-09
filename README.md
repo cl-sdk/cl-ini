@@ -26,6 +26,40 @@ other = 42")
 ;; Read from a file
 (cl-ini:read-ini #p"config.ini")
 ;; => (("section" ("key" . "value")))
+
+;; You can also pass :parser to parse-ini/read-ini for custom event handling.
+```
+
+### Event-driven parser
+
+`parse-ini` accepts a custom parser instance that subclasses `cl-ini:ini-parser`.
+
+```lisp
+(defclass recording-parser (cl-ini:ini-parser)
+  ((events :initform '() :accessor events)))
+
+(defmethod cl-ini:ini-parser-begin-document ((parser recording-parser))
+  (push '(:begin-document nil) (events parser)))
+
+(defmethod cl-ini:ini-parser-section ((parser recording-parser) section-name)
+  (push (list :section section-name) (events parser)))
+
+(defmethod cl-ini:ini-parser-pair ((parser recording-parser) pair)
+  (push (list :pair pair) (events parser)))
+
+(defmethod cl-ini:ini-parser-end-document ((parser recording-parser))
+  (push '(:end-document nil) (events parser)))
+
+(defmethod cl-ini:ini-parser-result ((parser recording-parser))
+  (nreverse (events parser)))
+
+(cl-ini:parse-ini "[section]
+key = value"
+                  :parser (make-instance 'recording-parser))
+;; => ((:BEGIN-DOCUMENT NIL)
+;;     (:SECTION "section")
+;;     (:PAIR ("key" . "value"))
+;;     (:END-DOCUMENT NIL))
 ```
 
 ### Writing an INI file
