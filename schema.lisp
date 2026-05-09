@@ -149,7 +149,9 @@ See COERCE-INI-VALUE for the supported types."
 ;;; Public API
 
 (defun parse-ini-with-schema (string schema)
-  "Parse STRING as INI text and apply SCHEMA for type coercion and validation.
+  "Convenience wrapper around PARSE-INI with SCHEMA.
+
+Parse STRING as INI text and apply SCHEMA for type coercion and validation.
 
 SCHEMA is an alist of sections.  Each section is a list whose first element
 is the section name (a string) and whose remaining elements are key
