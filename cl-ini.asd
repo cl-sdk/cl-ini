@@ -16,5 +16,6 @@
   :version "0.1.0"
   :in-order-to ((test-op (test-op #:cl-ini.test)))
   :components ((:file "package")
-               (:file "reader" :depends-on ("package"))
+               (:file "types" :depends-on ("package"))
+               (:file "reader" :depends-on ("package" "types"))
                (:file "writer" :depends-on ("package"))))

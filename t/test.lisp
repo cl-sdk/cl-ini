@@ -5,6 +5,24 @@
 
 (in-suite :cl-ini)
 
+(defclass recording-ini-parser (ini-parser)
+  ((events :initform '() :accessor recording-ini-parser-events)))
+
+(defmethod ini-parser-begin-document ((parser recording-ini-parser))
+  (push '(:begin-document nil) (recording-ini-parser-events parser)))
+
+(defmethod ini-parser-end-document ((parser recording-ini-parser))
+  (push '(:end-document nil) (recording-ini-parser-events parser)))
+
+(defmethod ini-parser-section ((parser recording-ini-parser) section-name)
+  (push (list :section section-name) (recording-ini-parser-events parser)))
+
+(defmethod ini-parser-pair ((parser recording-ini-parser) pair)
+  (push (list :pair pair) (recording-ini-parser-events parser)))
+
+(defmethod ini-parser-result ((parser recording-ini-parser))
+  (nreverse (recording-ini-parser-events parser)))
+
 ;;; Reader tests
 
 (test parse-empty-string
@@ -194,6 +212,28 @@ key = value" stream))
       (is (string= "section" (caar result)))
       (is (string= "value"
                    (cdr (assoc "key" (cdr (first result)) :test #'string=)))))))
+
+(test parse-ini-custom-parser-events
+  "PARSE-INI emits parser callbacks in document order."
+  (is (equal '((:begin-document nil)
+               (:section "section")
+               (:pair ("key" . "value"))
+               (:end-document nil))
+             (parse-ini "[section]
+key = value"
+                        :parser (make-instance 'recording-ini-parser)))))
+
+(test parse-ini-custom-parser-with-global-pairs
+  "PARSE-INI emits pair events before any section for global key/value lines."
+  (is (equal '((:begin-document nil)
+               (:pair ("global" . "42"))
+               (:section "section")
+               (:pair ("key" . "value"))
+               (:end-document nil))
+             (parse-ini "global = 42
+[section]
+key = value"
+                        :parser (make-instance 'recording-ini-parser)))))
 
 ;;; Writer tests
 
