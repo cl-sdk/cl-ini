@@ -59,6 +59,13 @@ Signals INI-SCHEMA-ERROR when coercion fails."
          (error 'ini-schema-error
                 :message (format nil "cannot coerce ~s to integer" string)))))
     (:float
+     (unless (and (plusp (length string))
+                  (every (lambda (c)
+                           (or (digit-char-p c)
+                               (member c '(#\. #\e #\E #\+ #\-))))
+                         string))
+       (error 'ini-schema-error
+              :message (format nil "cannot coerce ~s to float" string)))
      (let ((val (handler-case
                     (let ((*read-eval* nil))
                       (read-from-string string))
@@ -90,7 +97,7 @@ For each key spec:
 Keys present in PAIRS but not mentioned in KEY-SPECS are passed through
 unchanged (as strings)."
   (let ((result '())
-        (handled '()))
+        (handled (make-hash-table :test #'equal)))
     (dolist (spec key-specs)
       (let* ((name (key-spec-name spec))
              (type (key-spec-type spec))
@@ -98,18 +105,18 @@ unchanged (as strings)."
         (cond
           (pair
            (push (cons name (coerce-ini-value (cdr pair) type)) result)
-           (push name handled))
+           (setf (gethash name handled) t))
           (t
            (multiple-value-bind (default default-p) (key-spec-default spec)
              (cond
                (default-p
                 (push (cons name default) result)
-                (push name handled))
+                (setf (gethash name handled) t))
                ((key-spec-required-p spec)
                 (error 'ini-schema-error
                        :message (format nil "required key ~s is missing" name)))))))))
     (dolist (pair pairs)
-      (unless (member (car pair) handled :test #'string=)
+      (unless (gethash (car pair) handled)
         (push pair result)))
     (nreverse result)))
 
