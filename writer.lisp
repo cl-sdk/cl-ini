@@ -1,4 +1,4 @@
-(in-package :cl-ini)
+(in-package :io.github.diasbruno.ini)
 
 (defun write-ini-to-string (ini-data)
   "Serialize INI-DATA to a string.

@@ -1,2 +1,2 @@
-(defpackage :cl-ini.test
-  (:use :cl :fiveam :cl-ini))
+(defpackage :io.github.diasbruno.ini.test
+  (:use :cl :fiveam :io.github.diasbruno.ini))

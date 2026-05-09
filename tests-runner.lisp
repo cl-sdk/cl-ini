@@ -4,7 +4,7 @@
 
 (asdf:initialize-source-registry)
 
-(ql:quickload :cl-ini.test)
+(ql:quickload :io.github.diasbruno.ini.test)
 
 (unless (5am:run-all-tests)
   (uiop:quit -1))

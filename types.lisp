@@ -1,4 +1,4 @@
-(in-package :cl-ini)
+(in-package :io.github.diasbruno.ini)
 
 (defclass ini-parser ()
   ()

@@ -1,4 +1,4 @@
-(defpackage :cl-ini
+(defpackage :io.github.diasbruno.ini
   (:use :cl)
   (:export
    #:parse-ini
