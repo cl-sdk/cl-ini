@@ -28,10 +28,75 @@ other = 42")
 ;; => (("section" ("key" . "value")))
 ```
 
+### Schema-based parsing
+
+`parse-ini-with-schema` and `read-ini-with-schema` accept a *schema* that
+declares the expected type of each key.  Values are coerced to their declared
+type, required keys are enforced, and missing optional keys can be filled with
+defaults.
+
+```lisp
+(cl-ini:parse-ini-with-schema
+  "[server]
+host = localhost
+port = 8080
+debug = true"
+  '(("server"
+     ("host"  . :string)          ; simple type spec
+     ("port"  . :integer)         ; coerced to integer
+     ("debug" . :boolean)         ; coerced to boolean
+     ("timeout" :type :integer    ; full plist spec
+                :default 30
+                :required nil))))
+;; => (("server" ("host" . "localhost") ("port" . 8080) ("debug" . T) ("timeout" . 30)))
+```
+
+#### Key specification formats
+
+| Format | Example |
+|--------|---------|
+| Simple dotted pair | `("key" . :integer)` |
+| Full property list | `("key" :type :integer :default 0 :required t)` |
+
+#### Supported types
+
+| Type | Description |
+|------|-------------|
+| `:string` | Leave the value as a string (the default) |
+| `:integer` | Parse as a decimal integer |
+| `:float` | Parse as a floating-point number |
+| `:boolean` | `"true"`, `"yes"`, `"on"`, `"1"` → `T`; `"false"`, `"no"`, `"off"`, `"0"` → `NIL` |
+
+#### Error handling
+
+`cl-ini:ini-schema-error` is signalled when:
+- A value cannot be coerced to its declared type.
+- A key marked `:required t` is absent from the section.
+
+```lisp
+(handler-case
+    (cl-ini:parse-ini-with-schema "[s]
+n = not-a-number" '(("s" ("n" . :integer))))
+  (cl-ini:ini-schema-error (e)
+    (format t "Schema error: ~a~%" (cl-ini:ini-schema-error-message e))))
+;; => Schema error: cannot coerce "not-a-number" to integer
+```
+
+#### Applying a schema to already-parsed data
+
+`cl-ini:apply-schema` accepts the alist returned by `parse-ini` directly,
+which is convenient when you want to parse once and validate later:
+
+```lisp
+(let ((ini (cl-ini:parse-ini "[section]
+n = 42")))
+  (cl-ini:apply-schema ini '(("section" ("n" . :integer)))))
+;; => (("section" ("n" . 42)))
+```
+
 ### Writing an INI file
 
 ```lisp
-;; Write INI data to a string
 (cl-ini:write-ini-to-string '(("section" ("key" . "value") ("other" . "42"))))
 ;; => "[section]
 ;; key = value

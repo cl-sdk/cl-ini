@@ -223,3 +223,141 @@ key = value" stream))
                  (cdr (assoc "key" (cdr (first parsed)) :test #'string=))))
     (is (string= "42"
                  (cdr (assoc "other" (cdr (first parsed)) :test #'string=))))))
+
+;;; Schema tests
+
+(test schema-string-type
+  "The :string type leaves a value unchanged."
+  (let* ((schema '(("section" ("key" . :string))))
+         (result (parse-ini-with-schema "[section]
+key = hello" schema)))
+    (is (string= "hello"
+                 (cdr (assoc "key" (cdr (first result)) :test #'string=))))))
+
+(test schema-integer-type
+  "The :integer type coerces the value to an integer."
+  (let* ((schema '(("section" ("count" . :integer))))
+         (result (parse-ini-with-schema "[section]
+count = 42" schema)))
+    (is (= 42 (cdr (assoc "count" (cdr (first result)) :test #'string=))))))
+
+(test schema-float-type
+  "The :float type coerces the value to a float."
+  (let* ((schema '(("section" ("ratio" . :float))))
+         (result (parse-ini-with-schema "[section]
+ratio = 3.14" schema)))
+    (is (typep (cdr (assoc "ratio" (cdr (first result)) :test #'string=)) 'float))
+    (is (< (abs (- 3.14 (cdr (assoc "ratio" (cdr (first result)) :test #'string=)))) 1e-5))))
+
+(test schema-boolean-true-values
+  "The :boolean type recognises all truthy string forms."
+  (dolist (s '("true" "yes" "on" "1" "True" "YES" "ON"))
+    (let* ((schema '(("s" ("f" . :boolean))))
+           (result (parse-ini-with-schema (format nil "[s]~%f = ~a" s) schema)))
+      (is (eq t (cdr (assoc "f" (cdr (first result)) :test #'string=)))
+          (format nil "~s should be truthy" s)))))
+
+(test schema-boolean-false-values
+  "The :boolean type recognises all falsy string forms."
+  (dolist (s '("false" "no" "off" "0" "False" "NO" "OFF"))
+    (let* ((schema '(("s" ("f" . :boolean))))
+           (result (parse-ini-with-schema (format nil "[s]~%f = ~a" s) schema)))
+      (is (eq nil (cdr (assoc "f" (cdr (first result)) :test #'string=)))
+          (format nil "~s should be falsy" s)))))
+
+(test schema-full-plist-type
+  "A full plist key spec honours :type."
+  (let* ((schema '(("section" ("port" :type :integer))))
+         (result (parse-ini-with-schema "[section]
+port = 8080" schema)))
+    (is (= 8080 (cdr (assoc "port" (cdr (first result)) :test #'string=))))))
+
+(test schema-default-value-used-when-key-absent
+  "When a key is absent its :default value is inserted."
+  (let* ((schema '(("section" ("port" :type :integer :default 8080))))
+         (result (parse-ini-with-schema "[section]" schema)))
+    (is (= 8080 (cdr (assoc "port" (cdr (first result)) :test #'string=))))))
+
+(test schema-default-nil-used-when-key-absent
+  "A :default of NIL is honoured even though NIL is the zero value."
+  (let* ((schema '(("section" ("flag" :type :boolean :default nil))))
+         (result (parse-ini-with-schema "[section]" schema))
+         (pair (assoc "flag" (cdr (first result)) :test #'string=)))
+    (is (not (null pair)))         ; key is present in output
+    (is (null (cdr pair)))))
+
+(test schema-required-key-missing-signals-error
+  "A missing :required key signals INI-SCHEMA-ERROR."
+  (let ((schema '(("section" ("must-exist" :type :string :required t)))))
+    (signals ini-schema-error
+      (parse-ini-with-schema "[section]" schema))))
+
+(test schema-unknown-key-passed-through
+  "Keys not mentioned in the schema are passed through as strings."
+  (let* ((schema '(("section" ("typed" . :integer))))
+         (result (parse-ini-with-schema "[section]
+typed = 1
+extra = hello" schema)))
+    (is (= 1 (cdr (assoc "typed" (cdr (first result)) :test #'string=))))
+    (is (string= "hello" (cdr (assoc "extra" (cdr (first result)) :test #'string=))))))
+
+(test schema-section-not-in-schema-passed-through
+  "Sections absent from the schema are returned unmodified."
+  (let* ((schema '(("other" ("x" . :integer))))
+         (result (parse-ini-with-schema "[section]
+key = value" schema)))
+    (is (string= "value"
+                 (cdr (assoc "key" (cdr (first result)) :test #'string=))))))
+
+(test schema-invalid-integer-signals-error
+  "A non-numeric string coerced to :integer signals INI-SCHEMA-ERROR."
+  (let ((schema '(("section" ("n" . :integer)))))
+    (signals ini-schema-error
+      (parse-ini-with-schema "[section]
+n = not-a-number" schema))))
+
+(test schema-invalid-float-signals-error
+  "A non-numeric string coerced to :float signals INI-SCHEMA-ERROR."
+  (let ((schema '(("section" ("f" . :float)))))
+    (signals ini-schema-error
+      (parse-ini-with-schema "[section]
+f = not-a-float" schema))))
+
+(test schema-invalid-boolean-signals-error
+  "An unrecognised string coerced to :boolean signals INI-SCHEMA-ERROR."
+  (let ((schema '(("section" ("b" . :boolean)))))
+    (signals ini-schema-error
+      (parse-ini-with-schema "[section]
+b = maybe" schema))))
+
+(test schema-coerce-ini-value-standalone
+  "COERCE-INI-VALUE works as a standalone function."
+  (is (string= "hello" (coerce-ini-value "hello" :string)))
+  (is (= 7 (coerce-ini-value "7" :integer)))
+  (is (typep (coerce-ini-value "2.5" :float) 'float))
+  (is (eq t (coerce-ini-value "yes" :boolean)))
+  (is (eq nil (coerce-ini-value "off" :boolean))))
+
+(test schema-apply-schema-on-parsed-data
+  "APPLY-SCHEMA operates on already-parsed INI data."
+  (let* ((ini (parse-ini "[section]
+n = 10"))
+         (schema '(("section" ("n" . :integer))))
+         (result (apply-schema ini schema)))
+    (is (= 10 (cdr (assoc "n" (cdr (first result)) :test #'string=))))))
+
+(test read-ini-with-schema-from-file
+  "READ-INI-WITH-SCHEMA reads a file and applies the schema."
+  (uiop:with-temporary-file (:pathname path :type "ini" :keep nil)
+    (with-open-file (stream path
+                            :direction :output
+                            :if-exists :supersede
+                            :if-does-not-exist :create)
+      (write-string "[db]
+port = 5432
+debug = false" stream))
+    (let* ((schema '(("db" ("port" . :integer) ("debug" . :boolean))))
+           (result (read-ini-with-schema path schema))
+           (section (cdr (first result))))
+      (is (= 5432 (cdr (assoc "port" section :test #'string=))))
+      (is (eq nil (cdr (assoc "debug" section :test #'string=)))))))

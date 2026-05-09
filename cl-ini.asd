@@ -17,4 +17,5 @@
   :in-order-to ((test-op (test-op #:cl-ini.test)))
   :components ((:file "package")
                (:file "reader" :depends-on ("package"))
-               (:file "writer" :depends-on ("package"))))
+               (:file "writer" :depends-on ("package"))
+               (:file "schema" :depends-on ("package" "reader"))))
